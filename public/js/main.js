@@ -26,12 +26,13 @@ var player_score = 1000;
 var calc_score;
 var user_name;
 var opponent_user_name;
+var game_over = false;
 
 $(document).ready(function(){
 	document.getElementById('no_player_found').style.display = 'none';
     $('#guess').keypress(function(e){
-      if(e.keyCode==13)
-      $('#guess_submit').click();
+      if(e.keyCode==13 && game_over==false)
+      	$('#guess_submit').click();
     });
 });
 
@@ -240,6 +241,7 @@ function guessNumber(){
 			player_score = player_score + 100;
 			document.getElementById("score").innerHTML = player_score;
 			clearInterval(calc_score);
+			game_over = true;
 			socket.emit("game_over", [game_type, roomId, user_id, opponent_score, player_score, user_name, opponent_user_name]);
 			console.log('Congratulations! You won the game.');
 			//score();
@@ -297,6 +299,7 @@ socket.on('opponent_score', function(data){
 });
 
 socket.on("game_over_server", function(data){
+	game_over = true;
 	console.log('Inside game_over_server');
 	document.getElementById('lets_play_button').disabled = false
 	document.getElementById('guess_submit').disabled = true;

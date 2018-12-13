@@ -292,7 +292,6 @@ socket.on('opponent_score', function(data){
 });
 
 socket.on("game_over_server", function(data){
-	highScores();
 	console.log('Inside game_over_server');
 	document.getElementById('lets_play_button').disabled = false
 	document.getElementById('guess_submit').disabled = true;

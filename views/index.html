@@ -2,23 +2,144 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>Socket.io with p5</title>
+		<title>Cowbull</title>
 		<meta name="viewport" content="width=device-width initial-scale=1.0, user-scalable=yes">
-		<link rel="stylesheet" href="css/style.css"> 
-		<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+		<link href="https://fonts.googleapis.com/css?family=Noto+Serif+SC|PT+Sans|Slabo+27px" rel="stylesheet">
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" href="css/style.css">
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="js/p5/p5.js"></script>
 		<script src="js/p5/p5.dom.js"></script>
-		<script src="js/main.js"></script>  
+		<script src="js/main.js"></script>
 	</head>
 	<body>
-		<button onclick="ConnectWithAnotherUser()">Click me</button>
-		<button onclick="sendData()">Click</button>
-		<p id='user_input'><p>
-		<p id='guess_box' style = "display: none">
-			Guess: <input type="text" id="guess"><br>
-			<button onclick="guessNumber()">Click</button>
-			<p id = 'CowBullValue'></p>
-			</p> 
+		<h1 align='center'><font color='red'>Cow</font><font color='green'>bull</font></h1>
+		<h3 align='center'>Hello, Can you guess the number that I am thinking of?</h3>
+		<!-- Button trigger modal -->
+		<br><br>
+		<div class="container" align='center'>
+			<div class="row justify-content-md-center">
+				<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#instructions">
+				How To Play  <span class ="glyphicon glyphicon-question-sign"></span>
+				</button>
+				<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#user_name_div" id='lets_play_button'>
+			Let's Play </button>
+				<button type="button" class="btn btn-primary" onclick="highScores()">  High Scores</button>
+		</div>
+		<div class= 'row' id ="searching_user" style='display: none'>
+			<div class = 'col'>
+				<br><br>
+				Searching For Another User
+				<div id = "loaderThing" class = "loader"></div>
+			</div>
+		</div>
+		<div class='row' id ='no_player_found' style='display: none;'>
+			<br><br>
+			<p> <h4>No one is online right now. Try again later.</h4> </p>
+		</div>
+		<div class ='row' id='another_player_found_div' style='display: none;'>
+			<br><br>
+			<h4>
+			You have an opponent!<br>
+			Game Starts in <br></h4>
+			<h3 id = 'multi_count'></h3>
+		</div>
+		<div class ='row' id='single_player_start_game' style='display: none;'>
+			<h4>Game Starts in <br></h4>
+			<h3 id = 'single_count'></h3>
+		</div>
+		<br><br>
+		<div class='row' id='score_div'>
+			<div class='col-6' id='player_score_div' style="display: none;"">
+				Your Score: <p id ='score'></p>
+			</div>
+			<div class='col-6' id='opponent_score_div' style="display: none;">
+				Opponent Score: <p id = 'opponent_score'></p>
+			</div>
+		</div>
+		<br>
+		<div class = 'row'>
+			<div class='col' id='guess_box' style = "display: none">
+				<input type="text" id="guess" placeholder="Your Guess" class='form-control' style="margin:auto; width: 60%"> <br>
+				<button onclick="guessNumber()" class="btn btn-primary" id='guess_submit'>Submit</button>
+			</div>
+			<div class = "col scrollable" id ="CowBullValue"></div>
+		</div>
+		<div class='row' id ='correct_answer' style="display: none;"></div>
+		<div class = "row" id="after_win" style="display: none;">
+			<div class = "col">
+				<p id = "after_win_p"></p>
+			</div>
+		</div>
+		<div class="modal fade" id="choseGameType" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content" align='center'>
+					<div class="modal-body">
+						<button type="button" class="btn btn-primary" data-dismiss="modal" onclick="singlePlayer()">Single Player</button>
+						<button type="button" class="btn btn-primary" data-dismiss="modal" onclick="multiPlayer()">Multi-Player</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal fade" id="user_name_div" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content" align='center'>
+					<div class="modal-body">
+						Tell me your name: <input type = 'text' id='user_name'>
+						<button type="button" class="btn btn-primary" data-dismiss="modal" onclick='getUserName()'>Submit</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal fade" id="high_scores_div_main" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content" align='center' id = 'high_scores_div'>
+				</div>
+			</div>
+		</div>
+		<!-- Modal -->
+		<div class="modal fade" id="instructions" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h2 class="modal-title" id="exampleModalLongTitle">CowBull Instructions</h2>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body">
+						<p>CowBull is a number guessing game. You can choose to play single player or multiplayer. If you choose single player, you will be playing against the computer but if you choose multiplayer, you will be playing against another player who is chosen randomly.</p>
+						<p>For both single and multiplayer, you will be guessing a randomly selected four digit number (secret number). All the four digits in the number are unique and the number is greater than 1000. In multiplayer, you will try to guess the number earlier than other your opponent. Your final score depends upon how fast you guesed the secret number and the number of your guesses.</p>
+						<p> Your guess most follow the rules below:
+							<ol>
+								<li>It must be a four digit integer.</li>
+								<li>It must be greater than 1000.</li>
+								<li>All the digits in the number should be unique</li>
+							</ol>
+						</p>
+						<p> You will keep on guessing until you guess the right number. After each guess, you will get hints in terms of Cows and Bulls. Cows represent numbers of digits of your guess that are present in the secret number and are in the correct places. Bulls represent numbers of digits of your guess that are present in the secret number but are not in the correct places.</p>
+						<p>For example: <br>
+							Secret Number : 1234 <br>
+							Your guess:  1278 <br>
+							Hint : 2 Cows 0 Bulls => Digits 1, 2 and 4 present in both the secret number and your guess. 1 and 2 are in correct places so 2 Cows but 4 is not in correct place so 1 Bull. <br>
+							Your guess: 2356 <br>
+							Hint : 0 Cows 2 Bulls => Digits 2 and 3 present in both the secret number and your guess. 2 and 3 are not in the correct places so 2 Bulls. <br>
+							<h3>Now, you try: </h3>
+							Secret Number: 4567<br>
+							Guessed Number: 8760<br>
+							<!--<button type='button' id = 'show_answer' onlick = 'diplayAnswer()'>Find The Answer</button>-->
+							<p id = 'answer' style = 'display: none;'> Answer: 1 Cow and 1 Bull. => Digits 6, 7 are present in both the secret number and your guessed number. 6 is in correct place so 1 Cow but 7 is not in correct place so 1 Bull.<br>
+							If you are ready, close this dialog and click Play</p>
+							<button onclick="getElementById('answer').style.display = 'block'; this.style.display = 'none'">Know The Answer</button>
+						</p>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
 	</body>
 </html>

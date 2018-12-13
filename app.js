@@ -30,6 +30,19 @@ var rooms = new Set();
 var total_clients_connected = new Set();
 var total_available_clients = new Set();
 
+var cloudant_USER = 'e89778c3-725e-4003-8a2e-a47487165056-bluemix';
+var cloudant_DB = 'mashups';
+var cloudant_KEY = 'aryouggeduchtedingeolear';
+var cloudant_PASSWORD = '62fe2e6b773c9f83d9a14fafcda9645f39f3aa7f';
+
+var cloudant_URL = "https://" + cloudant_USER + ".cloudant.com/" + cloudant_DB;
+
+app.use(function(req, res, next) { 
+  res.header("Access-Control-Allow-Origin", "*"); 
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept"); 
+  next();
+});
+
 function getRandomKey(collection) {
     let index = Math.floor(Math.random() * collection.size);
     let cntr = 0;
@@ -39,6 +52,8 @@ function getRandomKey(collection) {
         }
     }
 }
+
+
 
 function getRandomNumber(num){
 	var arr = [0,1,2,3,4,5,6,7,8,9]
@@ -52,7 +67,6 @@ function getRandomNumber(num){
 io.on("connection", (socket) => {
     console.info(`Client connected [id=${socket.id}]`);
     // initialize this client's sequence number
-    sequenceNumberByClient.set(socket, 1);
     total_clients_connected.add(socket);
     // when socket disconnects, remove it from the list:
     socket.on("disconnect", () => {
@@ -64,6 +78,7 @@ io.on("connection", (socket) => {
     socket.emit('id', socket.id);
     
     socket.on('get_another_player', function (data){
+    	sequenceNumberByClient.set(socket, 1);
     	//console.log('Some Data Sent');
     	//io.emit('seq-num', data);
     	total_available_clients.add(socket);
@@ -80,14 +95,18 @@ io.on("connection", (socket) => {
     		client_to_connect.join(roomId);
     		rooms.add(roomId);
     		total_available_clients.delete(socket);
+    		sequenceNumberByClient.delete(socket);
+    		sequenceNumberByClient.delete(client_to_connect);
     		total_available_clients.delete(client_to_connect);
-    		io.sockets.in(roomId).emit('found_another_player',true)
-    		io.sockets.in(roomId).emit('seq-num',['Connected To a Room', socket.id, client_to_connect.id, roomId])
+    		io.in(roomId).emit('found_another_player', true)
+    		io.in(roomId).emit('another_player_data',[true, socket.id, client_to_connect.id, roomId])
+    		socket.emit('opponent_user_name', client_to_connect.user_name);
+    		socket.to(roomId).emit('opponent_user_name', socket.user_name)
     		//console.log(client_to_connect.id);
     		//io.emit('seq-num', [io.id, client_to_connect.id]);
     	}
     	else { 
-    		io.emit('found_another_player', false)
+    		socket.emit('found_another_player', false)
     	}
     });
     socket.on('guess', function(data){
@@ -99,26 +118,38 @@ io.on("connection", (socket) => {
 		// }
     	io.sockets.in(data[1]).emit('guess_back', data[0]);
     });
-    socket.on('start_play', function(data){
-    	io.sockets.in(data[0]).emit('start_play', [true, socket.id]);
-    });
-    socket.on('get_random_number', function(data){
+    socket.on('user_name', function(data){
+    	//console.log(data)
+    	socket['user_name'] = data;
+    	//console.log(socket.user_name)
+    })
+    socket.on('get_multiplayer_random_number', function(data){
     	random_number = getRandomNumber(4)
-    	io.sockets.in(data[0]).emit('random_number', random_number);
+    	io.in(data[0]).emit('multiplayer_random_number', random_number);
+    });
+    socket.on('get_single_player_random_number', function (data){
+    	random_number = getRandomNumber(4);
+    	console.log(random_number);
+    	socket.emit('single_player_random_number', random_number);
+    });
+    socket.on('player_score', function(data){
+    	socket.to(data[1]).emit('opponent_score', data[0]);
+    });
+    socket.on('game_over', function(data){
+    	var user_winner = data[2];
+    	var game_type = data[0];
+    	if (game_type=='multi_player'){
+    		io.in(data[1]).emit('game_over_server', [user_winner, game_type]);
+    		socket.to(data[1]).emit('opponent_score', data[4]);
+    	} else {
+    		socket.emit('game_over_server', [user_winner, game_type]);
+    	}
+    	saveData(data);
+    	
     });
     //console.log(client_to_connect.id);
     console.log(total_clients_connected.size, total_available_clients.size);
 });
-
-
-// sends each client its current sequence number
-// setInterval(() => {
-//     for (const [client, sequenceNumber] of sequenceNumberByClient.entries()) {
-//         client.emit("seq-num", sequenceNumber);
-//         sequenceNumberByClient.set(client, sequenceNumber + 1);
-//     }
-// }, 1000);
-
 
 /*-----
 ROUTES
@@ -128,14 +159,141 @@ app.get("/", function(req, res){
 	res.render('index');
 });
 
-//Main Socket Connection
-// io.on('connection', function (socket) {
-//  //console.log('a user connected');
-// 	socket.on('drawing', function (data) {
-// 		//console.log(data);
+function saveCloudant(data){
+	console.log(data);
+	//Send the data to the db
+	Request.post({
+		url: cloudant_URL,
+		auth: {
+			user: cloudant_KEY,
+			pass: cloudant_PASSWORD
+		},
+		json: true,
+		body: data
+	},
+	function (error, response, body){
+		if (response.statusCode == 201){
+			//console.log(body);
+			//res.json(body);
+			a = 2;
+		}
+		else{
+			console.log("Uh oh...");
+			console.log("Error: " + res.statusCode);
+			//res.send("Something went wrong...");
+		}
+	});
+}
 
-// 		//Will send to everyone except the sender
-// 		socket.broadcast.emit('news', data);
+function saveData(data){
+	game_type = data[0]
+	if (game_type=="single_player"){
+		var obj = {'user_name': data[5],
+					'game_type':'single_player',
+					'score':data[4],
+					'played_against':'',
+					'won':''};
+		saveCloudant(obj)
+	} else {
+		saveCloudant({'user_name':data[5], 'game_type':data[0],'score':data[4],'played_against':data[6],'won':'1'});
+		saveCloudant({'user_name':data[6], 'game_type':data[0],'score':data[3],'played_against':data[5],'won':'0'})
+	}
+}
 
-//   });
-// });
+function predicateBy(prop){
+   return function(a,b){
+      if( a[prop] > b[prop]){
+          return -1;
+      }else if( a[prop] < b[prop] ){
+          return 1;
+      }
+      return 0;
+   }
+}
+
+app.get("/api/highScores", function(req, res){
+	Request.get({
+		url: cloudant_URL+"/_all_docs?include_docs=true",
+		auth: {
+			user: cloudant_KEY,
+			pass: cloudant_PASSWORD
+		},
+		json: true
+	},
+	function (error, response, body){
+		var theRows = body.rows;
+		//Filter the results to match the current word
+		var single_player_scores = [];
+		var multi_player_scores = [];
+		theRows.forEach(function(d){
+			if (d.doc.game_type=="single_player"){
+				single_player_scores.push(d.doc);
+			} else if (d.doc.game_type=="multi_player"){
+				multi_player_scores.push(d.doc)
+			}
+		})
+		single_player_scores.sort(predicateBy("score"));
+		multi_player_scores.sort(predicateBy("score"));
+		//console.log('s',single_player_scores);
+		//console.log('m', multi_player_scores);
+		res.json({'single_player_scores':single_player_scores, 'multi_player_scores':multi_player_scores});
+	});
+})
+
+//SAVE an object to the db
+app.post("/save", function(req,res){
+	console.log("A POST!!!!");
+	//Get the data from the body
+	var data = req.body;
+	console.log(data);
+	//Send the data to the db
+	Request.post({
+		url: cloudant_URL,
+		auth: {
+			user: cloudant_KEY,
+			pass: cloudant_PASSWORD
+		},
+		json: true,
+		body: data
+	},
+	function (error, response, body){
+		if (response.statusCode == 201){
+			console.log("Saved!");
+			//res.json(body);
+		}
+		else{
+			console.log("Uh oh...");
+			console.log("Error: " + res.statusCode);
+			res.send("Something went wrong...");
+		}
+	});
+});
+
+app.get("/api/score/:user_name", function(req, res){
+	var user_name = req.params.user_name;
+	console.log('Making a db request for: ' + user_name);
+	//Use the Request lib to GET the data in the CouchDB on Cloudant
+	Request.get({
+		url: cloudant_URL+"/_all_docs?include_docs=true",
+		auth: {
+			user: cloudant_KEY,
+			pass: cloudant_PASSWORD
+		},
+		json: true
+	},
+	function (error, response, body){
+		var theRows = body.rows;
+		//Filter the results to match the current word
+		var user_name_scores = [];
+		theRows.forEach(function(d){
+			if (d.doc.user_name==user_name){
+				user_name_scores.push(d.doc);
+			}
+		});
+		if (user_name_scores.length<1){
+			res.json({'error':1, 'desc':'No record found'})
+		}else{
+			res.json({'error':0, 'total_games':user_name_scores.length, 'games':user_name_scores});
+		}
+	});
+});

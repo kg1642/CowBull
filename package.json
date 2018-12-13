@@ -12,10 +12,11 @@
     "body-parser": "^1.5.2",
     "ejs": "*",
     "express": "4.x",
+    "pg": "^2.11.2",
     "request": "^2.47.0",
     "serve-favicon": "^2.2.0",
     "socket.io": "^1.2.1",
-    "socket.io-client":"^2.2.0",
-    "underscore": "^1.7.0"
+    "socket.io-client": "^2.2.0",
+    "underscore": "^2.11.2"
   }
 }

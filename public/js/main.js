@@ -27,6 +27,7 @@ var calc_score;
 var user_name;
 var opponent_user_name;
 var game_over = false;
+var guess_list = [];
 
 $(document).ready(function(){
 	document.getElementById('no_player_found').style.display = 'none';
@@ -52,8 +53,10 @@ function removeDivs(){
 
 function multiPlayer(){
 	console.log('multiPlayer')
+	guess_list = [];
 	removeDivs();
 	game_over = false;
+	number_of_guesses = 0;
 	document.getElementById('guess_submit').disabled = false;
 	document.getElementById("lets_play_button").disabled = true;
 	game_type = "multi_player";
@@ -227,8 +230,13 @@ function guessNumber(){
 	if (checkGuess(guess)){
 		number_of_guesses = number_of_guesses + 1
 		cows = getCows(guess)
-		bulls = getBulls(guess)			
-		player_score = (player_score - 10)+(cows*6)+(bulls*3);
+		bulls = getBulls(guess)
+		if (guess_list.includes(guess)){
+			player_score = (player_score - 10)
+		} else {
+			player_score = (player_score - 10)+(cows*6)+(bulls*3);
+		}			
+		guess_list.push(guess);
 		//document.getElementById('CowBullValue').appendChild(br);
 		var p = document.createElement('p');
 		p.innerHTML = number_of_guesses+": <b>"+guess+"</b>--> <font color='green'>"+cows+" Cows </font><font color='red'>"+bulls+" Bulls<font color='green'>";
@@ -255,6 +263,8 @@ function guessNumber(){
 function singlePlayer(){
 	removeDivs();
 	game_over = false;
+	guess_list = [];
+	number_of_guesses = 0;
 	document.getElementById("lets_play_button").disabled = true;
 	document.getElementById('guess_submit').disabled = false;
 	console.log('Single Player clicked');
@@ -278,7 +288,7 @@ socket.on('single_player_random_number', function (data){
 })
 
 function score(){
-	player_score = player_score - 1
+	player_score = player_score - (Math.ceil(number_of_guesses/10));
 	if (game_type=='multi_player'){
 		socket.emit('player_score', [player_score, roomId, user_id]);
 	}

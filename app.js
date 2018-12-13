@@ -236,7 +236,7 @@ app.get("/api/highScores", function(req, res){
 		multi_player_scores.sort(predicateBy("score"));
 		//console.log('s',single_player_scores);
 		//console.log('m', multi_player_scores);
-		res.json({'single_player_scores':single_player_scores, 'multi_player_scores':multi_player_scores});
+		res.json({'single_player_scores':single_player_scores.slice(0,5), 'multi_player_scores':multi_player_scores.slice(0,5)});
 	});
 })
 

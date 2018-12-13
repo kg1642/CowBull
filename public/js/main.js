@@ -46,6 +46,7 @@ function removeDivs(){
 	document.getElementById('single_player_start_game').style.display = 'none';
 	document.getElementById('correct_answer').style.display = 'none';
 	document.getElementById('no_player_found').style.display = 'none';
+	document.getElementById('CowBullValue').style.display = 'none';
 }
 
 function multiPlayer(){
@@ -153,6 +154,8 @@ socket.on('multiplayer_random_number', function (data) {
 	document.getElementById('guess_box').style.display = 'block';
 	document.getElementById('player_score_div').style.display = 'block';
 	document.getElementById('opponent_score_div').style.display = 'block';
+	document.getElementById('CowBullValue').innerHTML="";
+	document.getElementById('CowBullValue').style.display="block";
 	calc_score = setInterval(score, 1000);
 	//play_game(random_number)
 });
@@ -262,7 +265,9 @@ socket.on('single_player_random_number', function (data){
 	//console.log(data);
 	game_type = "single_player";
 	single_player_random_number = data;
+	document.getElementById('CowBullValue').innerHTML="";
 	document.getElementById('guess_box').style.display = 'block';
+	document.getElementById('CowBullValue').style.display = 'block';
 	document.getElementById('player_score_div').style.display = 'block';
 	calc_score = setInterval(score, 1000);
 

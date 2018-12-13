@@ -53,6 +53,7 @@ function removeDivs(){
 function multiPlayer(){
 	console.log('multiPlayer')
 	removeDivs();
+	game_over = false;
 	document.getElementById('guess_submit').disabled = false;
 	document.getElementById("lets_play_button").disabled = true;
 	game_type = "multi_player";
@@ -253,6 +254,7 @@ function guessNumber(){
 
 function singlePlayer(){
 	removeDivs();
+	game_over = false;
 	document.getElementById("lets_play_button").disabled = true;
 	document.getElementById('guess_submit').disabled = false;
 	console.log('Single Player clicked');

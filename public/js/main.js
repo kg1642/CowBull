@@ -148,7 +148,7 @@ function countDown(start_game_user_id) {
 socket.on('multiplayer_random_number', function (data) {
 	multiplayer_random_number = data;
 	game_type = "multi_player";
-	console.log(data);
+	//console.log("7456",data,"9087","1234");
 	document.getElementById('another_player_found_div').style.display = 'none';
 	document.getElementById('guess_box').style.display = 'block';
 	document.getElementById('player_score_div').style.display = 'block';
@@ -259,7 +259,7 @@ function singlePlayer(){
 }
 
 socket.on('single_player_random_number', function (data){
-	console.log(data);
+	//console.log(data);
 	game_type = "single_player";
 	single_player_random_number = data;
 	document.getElementById('guess_box').style.display = 'block';

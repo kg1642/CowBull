@@ -27,7 +27,25 @@ html,body{
 }
 .scrollable {
 	overflow-y:scroll;
-	height:400px;
+	height: 400px;
 	position : relative; 
-	bottom:0;
+}
+
+/*.scrollable {
+    height: 20%;
+    overflow: auto;
+}*/
+
+.footer {
+  position: fixed;
+  margin-bottom: 10px;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+#wrapper {
+    height: 100%;
+    width: 200px;
+    overflow: auto;
 }

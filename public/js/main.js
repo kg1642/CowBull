@@ -1,9 +1,7 @@
 
 
-//----------CLIENT-SIDE SOCKET CODE----------//
-//Init socket object
 var socket = io();
-loop_count = 1;
+var loop_count = 1;
 var found_another_player = false;
 var find_another_player;
 var roomId;
@@ -38,6 +36,7 @@ $(document).ready(function(){
 });
 
 
+//makes the display of various divs none at the beginning of a game
 function removeDivs(){
 	document.getElementById('player_score_div').style.display = 'none';
 	document.getElementById('opponent_score_div').style.display = 'none';
@@ -51,6 +50,7 @@ function removeDivs(){
 	document.getElementById('CowBullValue').style.display = 'none';
 }
 
+//this function gets run when a user chooses multiplayer option
 function multiPlayer(){
 	console.log('multiPlayer')
 	guess_list = [];
@@ -67,26 +67,31 @@ function multiPlayer(){
 	find_another_player = setInterval(another_player_socket_request, 500);
 }
 
+//displaying answer for the instructions part 
 function diplayAnswer(){
 	document.getElementById('answer').style.display = 'block';
 	document.getElementById('show_answer').style.display  ='none';
 }
-//Receive data from the server using .on()
+
+//check opponent found or not when a user chooses multiplayer
 socket.on('another_player_data', function (data) {
 	roomId = data[3];
 	console.log('Room ID:', roomId);
 	count = 5;
+	//if an opponent found, start the countdown to start the game
 	if (data[0] == true){
 		document.getElementById('searching_user').style.display = 'none';
 		timer = setInterval(countDown, 1000, data[1]);
 	}
 });
 
+//get the user name of the opponent
 socket.on('opponent_user_name', function(data){
 	opponent_user_name = data;
 	console.log(opponent_user_name);
 })
 
+//get id for the user
 socket.on('id', function (data) {
 	//console.log(data);
 	console.log('User ID:',data)
@@ -104,6 +109,7 @@ socket.on('found_another_player', function(data){
 	}
 })
 
+//keep on calling the server to find an opponent until found or loop count reaches 40 (20 seconds)
 function another_player_socket_request(){
 	loop_count = loop_count + 1;
 	console.log('Not Found');
@@ -127,7 +133,9 @@ function sendData(){
 // 		document.getElementById('user_input').innerHTML = data;
 // });
 
+//countdown before the game starts
 function countDown(start_game_user_id) {
+	//if countdown is zero call server to get a random number else decrease the count
   if(count === 0) {
     clearInterval(timer);
     if (game_type=='multi_player'){
@@ -151,20 +159,25 @@ function countDown(start_game_user_id) {
   }
 }
 
+//getting the random number for multiplayer game
 socket.on('multiplayer_random_number', function (data) {
 	multiplayer_random_number = data;
-	game_type = "multi_player";
-	//console.log("7456",data,"9087","1234");
+	game_type = "multi_player"; //change game_type to multi_player
+
+	//show the relevant divs
 	document.getElementById('another_player_found_div').style.display = 'none';
 	document.getElementById('guess_box').style.display = 'block';
 	document.getElementById('player_score_div').style.display = 'block';
 	document.getElementById('opponent_score_div').style.display = 'block';
 	document.getElementById('CowBullValue').innerHTML="";
 	document.getElementById('CowBullValue').style.display="block";
+	//document.getElementById('CowBullValue').style.height = window.innerHeight - 10 - $("#CowBullValue").position().top; 
+	
+	//start calculating the score
 	calc_score = setInterval(score, 1000);
-	//play_game(random_number)
 });
 
+//check for duplicates in the guess entered
 function checkDuplicates(guess){
 	if (guess[0]===guess[1] || guess[0]===guess[2] || guess[0]===guess[3] || guess[1]===guess[2] || guess[1]==guess[3] || guess[2]===guess[3]){
 		alert('All Digits must be unique');
@@ -173,6 +186,7 @@ function checkDuplicates(guess){
 	return true
 }
 
+//check whether the guess is valid or not
 function checkGuess(guess){
 	if (guess.length != 4){
 		alert('It must be a four digit number')
@@ -189,6 +203,7 @@ function checkGuess(guess){
 	return checkDuplicates(guess)
 }
 
+//get the current random number
 function getRandomNUmber(){
 	if (game_type=='single_player'){
 		return single_player_random_number
@@ -197,6 +212,8 @@ function getRandomNUmber(){
 	}
 }
 
+
+//function to calculate the number of cows in the guess
 function getCows(guess){
 	var random_number = getRandomNUmber();
 	var cows = 0;
@@ -208,6 +225,7 @@ function getCows(guess){
 	return cows
 }
 
+//get the number of bulls in the guess
 function getBulls(guess){
 	var random_number = getRandomNUmber();
 	var bulls = 0;
@@ -223,7 +241,7 @@ function getBulls(guess){
 }
 
 
-
+//this function gets run when a guess is made
 function guessNumber(){
 	guess = document.getElementById('guess').value
 	//console.log('Random Number', random_number);
@@ -234,11 +252,13 @@ function guessNumber(){
 		if (guess_list.includes(guess)){
 			player_score = (player_score - 10)
 		} else {
+			//scoring mechanism
 			player_score = (player_score - 10)+(cows*6)+(bulls*3);
 		}			
 		guess_list.push(guess);
 		//document.getElementById('CowBullValue').appendChild(br);
 		var p = document.createElement('p');
+		//display the results
 		p.innerHTML = number_of_guesses+": <b>"+guess+"</b>--> <font color='green'>"+cows+" Cows </font><font color='red'>"+bulls+" Bulls<font color='green'>";
 
 		//var cow_bull_value = document.createTextNode(number_of_guesses+": "+cows+" C "+bulls+" B   \u000a");
@@ -247,10 +267,12 @@ function guessNumber(){
 		hints_div.scrollTop = hints_div.scrollHeight;
 		document.getElementById('guess').value="";
 		if (cows == 4){
+			//if number of cows is 4 then the game is over
 			player_score = player_score + 100;
 			document.getElementById("score").innerHTML = player_score;
 			clearInterval(calc_score);
 			game_over = true;
+			//sending game over to the server
 			socket.emit("game_over", [game_type, roomId, user_id, opponent_score, player_score, user_name, opponent_user_name]);
 			console.log('Congratulations! You won the game.');
 			//score();
@@ -260,6 +282,7 @@ function guessNumber(){
 	return
 }
 
+//this function gets run when single player is clicked
 function singlePlayer(){
 	removeDivs();
 	game_over = false;
@@ -275,6 +298,7 @@ function singlePlayer(){
 	timer = setInterval(countDown, 1000, 'null');
 }
 
+//getting the random number for single player game
 socket.on('single_player_random_number', function (data){
 	//console.log(data);
 	game_type = "single_player";
@@ -282,11 +306,15 @@ socket.on('single_player_random_number', function (data){
 	document.getElementById('CowBullValue').innerHTML="";
 	document.getElementById('guess_box').style.display = 'block';
 	document.getElementById('CowBullValue').style.display = 'block';
+	var cowbull_height = (window.innerHeight - 85 - $("#CowBullValue").position().top);
+	document.getElementById('CowBullValue').style.height = String(cowbull_height)+"px"; 
 	document.getElementById('player_score_div').style.display = 'block';
+	//start calculating the score
 	calc_score = setInterval(score, 1000);
 
 })
 
+//displaying the score
 function score(){
 	player_score = player_score - (Math.ceil(number_of_guesses/10));
 	if (game_type=='multi_player'){
@@ -295,6 +323,8 @@ function score(){
 	document.getElementById('score').innerHTML = player_score;
 }
 
+
+//get the user name of the user
 function getUserName(){
 	user_name = document.getElementById('user_name').value;
 	if (user_name.length < 3){
@@ -305,11 +335,13 @@ function getUserName(){
 	$("#choseGameType").modal()
 }
 
+//get and display opponent score
 socket.on('opponent_score', function(data){
 	opponent_score = data;
 	document.getElementById('opponent_score').innerHTML = data;
 });
 
+//server sends this when game os over
 socket.on("game_over_server", function(data){
 	game_over = true;
 	console.log('Inside game_over_server');
@@ -319,6 +351,7 @@ socket.on("game_over_server", function(data){
 	document.getElementById("CowBullValue").style.display = "none";
 	document.getElementById('correct_answer').style.display = 'block';
 	var user_winner = data[0];
+	//displaying based on who won and game type
 	if (data[1]=="multi_player"){
 		clearInterval(calc_score);
 		document.getElementById('correct_answer').innerHTML = "<p><h3>Correct Answer: "+multiplayer_random_number.join("")+"</h3></p>";
@@ -337,6 +370,7 @@ socket.on("game_over_server", function(data){
 	$("after_win_p").append('<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#user_name_div" id="lets_play_button">Play Again</span></button>')
 });
 
+//getting high scores 
 function highScores(){
 	$.ajax({
 		url: "/api/highScores",
@@ -353,6 +387,7 @@ function highScores(){
 	});
 }
 
+//creating a popup for high scores
 function popupHighScores(data){
 	var single_player_scores = data['single_player_scores'];
 	var multi_player_scores = data['multi_player_scores'];

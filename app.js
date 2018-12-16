@@ -30,10 +30,10 @@ var rooms = new Set();
 var total_clients_connected = new Set();
 var total_available_clients = new Set();
 
-var cloudant_USER = 'CLOUDANT USER';
-var cloudant_DB = 'CLOUDANT DB';
-var cloudant_KEY = 'CLOUDANT KEY';
-var cloudant_PASSWORD = 'CLOUDANT PASSWORD';
+var cloudant_USER = process.env.CLOUDANTUSER;
+var cloudant_DB = process.env.CLOUDANTDB;
+var cloudant_KEY = process.env.CLOUDANTKEY;
+var cloudant_PASSWORD = process.env.CLOUDANTPASSWORD;
 
 var cloudant_URL = "https://" + cloudant_USER + ".cloudant.com/" + cloudant_DB;
 

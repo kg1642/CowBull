@@ -1,6 +1,7 @@
 # CowBull
 
 [CowBull](https://cowbull2.herokuapp.com) is a number guessing game. You can choose to play single player or multiplayer. If you choose single player, you will be playing against the computer but if you choose multiplayer, you will be playing against another player who is chosen randomly. For both single and multiplayer, you will be guessing a randomly selected four digit number (secret number). All the four digits in the number are unique and the number is greater than 1000. In multiplayer, you will try to guess the number earlier than your opponent. Your final score depends upon how fast you guesed the secret number and the number of your guesses.
+
 ![Main Page](https://github.com/kg1642/CowBull/blob/master/public/media/mainpage.png)
 ![Single Player Game in Action](https://github.com/kg1642/CowBull/blob/master/public/media/singleplayer.png)
 

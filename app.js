@@ -30,10 +30,10 @@ var rooms = new Set();
 var total_clients_connected = new Set();
 var total_available_clients = new Set();
 
-var cloudant_USER = 'e89778c3-725e-4003-8a2e-a47487165056-bluemix';
-var cloudant_DB = 'mashups';
-var cloudant_KEY = 'aryouggeduchtedingeolear';
-var cloudant_PASSWORD = '62fe2e6b773c9f83d9a14fafcda9645f39f3aa7f';
+var cloudant_USER = 'CLOUDANT USER';
+var cloudant_DB = 'CLOUDANT DB';
+var cloudant_KEY = 'CLOUDANT KEY';
+var cloudant_PASSWORD = 'CLOUDANT PASSWORD';
 
 var cloudant_URL = "https://" + cloudant_USER + ".cloudant.com/" + cloudant_DB;
 

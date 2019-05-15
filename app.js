@@ -25,11 +25,13 @@ var server = app.listen(port);
 var io = require('socket.io')(server);
 console.log('Express started on port ' + port);
 
+//initializing variables 
 var sequenceNumberByClient = new Map();
 var rooms = new Set();
 var total_clients_connected = new Set();
 var total_available_clients = new Set();
 
+// database connection information
 var cloudant_USER = process.env.CLOUDANTUSER;
 var cloudant_DB = process.env.CLOUDANTDB;
 var cloudant_KEY = process.env.CLOUDANTKEY;
@@ -43,6 +45,7 @@ app.use(function(req, res, next) {
   next();
 });
 
+// randomly get key of a connected client
 function getRandomKey(collection) {
     let index = Math.floor(Math.random() * collection.size);
     let cntr = 0;
@@ -54,7 +57,7 @@ function getRandomKey(collection) {
 }
 
 
-
+//generate the random number which will be sent to the players
 function getRandomNumber(num){
 	var arr = [0,1,2,3,4,5,6,7,8,9]
 	random_number =  arr.map(a => [a,Math.random()]).sort((a,b) => {return a[1] < b[1] ? -1 : 1;}).slice(0,num).map(a => a[0]);
@@ -66,17 +69,19 @@ function getRandomNumber(num){
 
 io.on("connection", (socket) => {
     console.info(`Client connected [id=${socket.id}]`);
-    // initialize this client's sequence number
+    // add the client to the client list
     total_clients_connected.add(socket);
-    // when socket disconnects, remove it from the list:
+    // when socket disconnects, remove it from all the lists
     socket.on("disconnect", () => {
         sequenceNumberByClient.delete(socket);
         total_clients_connected.delete(socket);
     	total_available_clients.delete(socket);
         console.info(`Client gone [id=${socket.id}]`);
     });
+    // emit that a new client is added
     socket.emit('id', socket.id);
     
+    // finding another player for multiplayer game
     socket.on('get_another_player', function (data){
     	sequenceNumberByClient.set(socket, 1);
     	//console.log('Some Data Sent');
@@ -88,16 +93,20 @@ io.on("connection", (socket) => {
     			client_to_connect = getRandomKey(sequenceNumberByClient)
     			//client_to_connect = sequenceNumberByClient.get(random_key);
     		}
+		//creating room Id
     		var roomId = Math.random().toString(36).substring(2, 13);
     		//socket.room = roomId;
     		socket.join(roomId);
     		//client_to_connect.room = roomId;
     		client_to_connect.join(roomId);
+		
+		//add the player to the room and delete it from available list
     		rooms.add(roomId);
     		total_available_clients.delete(socket);
     		sequenceNumberByClient.delete(socket);
     		sequenceNumberByClient.delete(client_to_connect);
     		total_available_clients.delete(client_to_connect);
+		//send the info of opponent (another player) to the game
     		io.in(roomId).emit('found_another_player', true)
     		io.in(roomId).emit('another_player_data',[true, socket.id, client_to_connect.id, roomId])
     		socket.emit('opponent_user_name', client_to_connect.user_name);
@@ -106,35 +115,39 @@ io.on("connection", (socket) => {
     		//io.emit('seq-num', [io.id, client_to_connect.id]);
     	}
     	else { 
+		//if opponent (another player) not found send false
     		socket.emit('found_another_player', false)
     	}
     });
+	
     socket.on('guess', function(data){
-  //   	console.log(data);
-  //   	var clients_in_the_room = io.sockets.adapter.rooms[data[1]].sockets; 
-		// for (var clientId in clients_in_the_room ) {
-  // 			console.log(clientId); //Seeing is believing 
-  // 			//var client_socket = io.sockets.connected[clientId];//Do whatever you want with this
-		// }
     	io.sockets.in(data[1]).emit('guess_back', data[0]);
     });
+	
+    // receive the username and save
     socket.on('user_name', function(data){
     	//console.log(data)
     	socket['user_name'] = data;
     	//console.log(socket.user_name)
     })
+
+    // send the random number for multiplayer game to the frontend
     socket.on('get_multiplayer_random_number', function(data){
     	random_number = getRandomNumber(4)
     	io.in(data[0]).emit('multiplayer_random_number', random_number);
     });
+	
+    // send the random number for single player game to the frontend
     socket.on('get_single_player_random_number', function (data){
     	random_number = getRandomNumber(4);
     	console.log(random_number);
     	socket.emit('single_player_random_number', random_number);
     });
+    // send players score
     socket.on('player_score', function(data){
     	socket.to(data[1]).emit('opponent_score', data[0]);
     });
+    // on game over save data and let the users know who won based on the game type
     socket.on('game_over', function(data){
     	var user_winner = data[2];
     	var game_type = data[0];
@@ -159,6 +172,7 @@ app.get("/", function(req, res){
 	res.render('index');
 });
 
+// save data in Cloudant 
 function saveCloudant(data){
 	console.log(data);
 	//Send the data to the db
@@ -211,6 +225,7 @@ function predicateBy(prop){
    }
 }
 
+// route to get the high scores
 app.get("/api/highScores", function(req, res){
 	Request.get({
 		url: cloudant_URL+"/_all_docs?include_docs=true",
@@ -234,15 +249,12 @@ app.get("/api/highScores", function(req, res){
 		})
 		single_player_scores.sort(predicateBy("score"));
 		multi_player_scores.sort(predicateBy("score"));
-		//console.log('s',single_player_scores);
-		//console.log('m', multi_player_scores);
+		//return top 5 scorers
 		res.json({'single_player_scores':single_player_scores.slice(0,5), 'multi_player_scores':multi_player_scores.slice(0,5)});
 	});
 })
 
-//SAVE an object to the db
 app.post("/save", function(req,res){
-	console.log("A POST!!!!");
 	//Get the data from the body
 	var data = req.body;
 	console.log(data);
@@ -269,6 +281,7 @@ app.post("/save", function(req,res){
 	});
 });
 
+// get the score of a player based on user name
 app.get("/api/score/:user_name", function(req, res){
 	var user_name = req.params.user_name;
 	console.log('Making a db request for: ' + user_name);
